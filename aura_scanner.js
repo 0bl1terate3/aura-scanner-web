@@ -2942,6 +2942,19 @@ function resolveToken(cliToken) {
   return cliToken || process.env.DISCORD_TOKEN || HARDCODED_TOKEN;
 }
 
+async function loginWithTimeout(client, token, timeoutMs = 45_000) {
+  return new Promise((resolve, reject) => {
+    const timeoutHandle = setTimeout(() => {
+      reject(new Error("Discord login timed out. This host may be blocked/challenged by Discord."));
+    }, timeoutMs);
+    client
+      .login(token)
+      .then(resolve)
+      .catch(reject)
+      .finally(() => clearTimeout(timeoutHandle));
+  });
+}
+
 function exportStaticDashboard(outPath, apiBaseUrl) {
   const outputPath = path.resolve(outPath || path.join("docs", "index.html"));
   const outputDir = path.dirname(outputPath);
@@ -2978,7 +2991,7 @@ async function main() {
     setDashboardStatus("Connecting to Discord...");
     console.log(`Dashboard: http://localhost:${GUI_PORT}`);
     console.log(`Server bind: ${GUI_HOST}:${GUI_PORT}`);
-    await client.login(token);
+    await loginWithTimeout(client, token);
     setDashboardStatus("Logged in. Fetching channel...");
     console.log(`Logged in as ${client.user?.username ?? "unknown user"}.`);
     const channel = await client.channels.fetch(options.channelId);
