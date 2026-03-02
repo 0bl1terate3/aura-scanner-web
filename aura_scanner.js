@@ -2435,6 +2435,12 @@ function startDashboardServer(apiBaseUrl = DASHBOARD_API_BASE_URL) {
       return;
     }
 
+    if (requestUrl.pathname === "/health") {
+      response.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
+      response.end(JSON.stringify({ ok: true }));
+      return;
+    }
+
     response.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
     response.end(renderDashboardHtml(apiBaseUrl));
   });

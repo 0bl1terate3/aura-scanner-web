@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: aura-scanner-backend
+    runtime: node
+    plan: free
+    autoDeploy: true
+    buildCommand: npm ci
+    startCommand: node aura_scanner.js
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://0bl1terate3.github.io
+      - key: DISCORD_TOKEN
+        sync: false
