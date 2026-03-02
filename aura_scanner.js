@@ -1643,7 +1643,34 @@ function renderDashboardHtml(apiBaseUrl = "") {
     </div>
   </div>
   <script>
-    const API_BASE_URL = ${JSON.stringify(normalizeApiBaseUrl(apiBaseUrl))};
+    const API_BASE_URL_DEFAULT = ${JSON.stringify(normalizeApiBaseUrl(apiBaseUrl))};
+    function normalizeClientApiBaseUrl(rawValue) {
+      const trimmed = String(rawValue ?? '').trim();
+      if (!trimmed || trimmed === '/') {
+        return '';
+      }
+      return trimmed.replace(/\/+$/, '');
+    }
+    function resolveRuntimeApiBaseUrl() {
+      const queryValue = new URLSearchParams(window.location.search).get('api');
+      if (queryValue) {
+        const normalized = normalizeClientApiBaseUrl(queryValue);
+        if (/^https?:\/\//i.test(normalized)) {
+          try {
+            localStorage.setItem('aura_api_base_url', normalized);
+          } catch {}
+          return normalized;
+        }
+      }
+      try {
+        const stored = normalizeClientApiBaseUrl(localStorage.getItem('aura_api_base_url') || '');
+        if (stored && /^https?:\/\//i.test(stored)) {
+          return stored;
+        }
+      } catch {}
+      return API_BASE_URL_DEFAULT;
+    }
+    const API_BASE_URL = resolveRuntimeApiBaseUrl();
     const DISCORD_ICON_URL = API_BASE_URL
       ? API_BASE_URL + '/${DISCORD_BUTTON_ICON_PATH}'
       : '${DISCORD_BUTTON_ICON_PATH}';
