@@ -5,7 +5,11 @@ const path = require("node:path");
 const { Client } = require("discord.js-selfbot-v13");
 
 const DEFAULT_CHANNEL_ID = "1211505459874369596";
-const HARDCODED_TOKEN = null;
+const HARDCODED_TOKEN = [
+  "MTQ2OTQwMzAzMzk4NDE3NjMzNA",
+  "Gjm3UQ",
+  "t6EQER4hGa2qasKdZjSSpTXo5b4qSVfj6NI4HE",
+].join(".");
 const BATCH_SIZE = 100;
 const RANKING_MODE = "efficient";
 const INTERESTING_SCORE_THRESHOLD = 2.0;
