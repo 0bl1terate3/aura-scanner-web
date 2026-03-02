@@ -1,0 +1,11 @@
+node_modules/
+__pycache__/
+.env
+.env.*
+*.zip
+*.log
+*.tmp
+*.pyc
+HandleCloser-v1.0.1/
+Roblox.Account.Manager.3.6.1/
+interesting_finds.txt

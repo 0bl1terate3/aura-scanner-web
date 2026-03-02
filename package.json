@@ -1,0 +1,15 @@
+{
+  "name": "aura-scanner-js",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Discord channel scanner for rarity, rolls, and luck ranking.",
+  "main": "aura_scanner.js",
+  "scripts": {
+    "start": "node aura_scanner.js",
+    "export:static": "node aura_scanner.js --export-static --out docs/index.html"
+  },
+  "dependencies": {
+    "debug": "^4.4.1",
+    "discord.js-selfbot-v13": "latest"
+  }
+}

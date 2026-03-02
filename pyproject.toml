@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aura-scanner"
+version = "0.1.0"
+description = "Scan Discord channel history for rare aura rolls and rank the least observed luck."
+requires-python = ">=3.11"
+dependencies = ["discord.py-self>=2.0.1"]
+
+[project.scripts]
+aura-scan = "aura_scanner:main"
+
+[tool.setuptools]
+py-modules = ["aura_scanner"]

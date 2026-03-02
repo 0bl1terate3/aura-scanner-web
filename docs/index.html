@@ -1,0 +1,814 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aura Scanner</title>
+  <style>
+    @font-face { font-family: "gg sans"; src: local("gg sans Regular"), local("gg sans"); font-weight: 400; font-style: normal; font-display: swap; }
+    @font-face { font-family: "gg sans"; src: local("gg sans Medium"); font-weight: 500; font-style: normal; font-display: swap; }
+    @font-face { font-family: "gg sans"; src: local("gg sans Semibold"); font-weight: 600; font-style: normal; font-display: swap; }
+    @font-face { font-family: "gg sans"; src: local("gg sans Bold"); font-weight: 700; font-style: normal; font-display: swap; }
+    :root { color-scheme: dark; --bg:#0b1020; --panel:#121a30; --line:#24314f; --text:#eef3ff; --muted:#9fb0d1; --accent:#7cc7ff; --accentSoft: rgba(124,199,255,.18); --accentLine: rgba(124,199,255,.34); --embed:#3a3d44; --embedShade:#24262b; --embedEdge:#00b0f4; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { margin: 0; font-family: "gg sans", "Noto Sans", "Helvetica Neue", Helvetica, Arial, sans-serif; background:
+      radial-gradient(circle at top left, rgba(33,78,168,.35), transparent 34%),
+      radial-gradient(circle at top right, rgba(0,176,244,.18), transparent 22%),
+      radial-gradient(circle at top, #132042, var(--bg) 58%);
+      color: var(--text); line-height: 1.45; overflow: hidden; }
+    .wrap { max-width: 1300px; height: 100vh; margin: 0 auto; padding: 18px 18px 20px; display: flex; flex-direction: column; }
+    h1 { margin: 0 0 6px; font-size: 28px; letter-spacing: -.02em; text-shadow: 0 2px 16px rgba(0,0,0,.28); }
+    .meta { color: var(--muted); margin-bottom: 12px; font-size: 13px; flex: 0 0 auto; }
+    .tab-shell { display: flex; flex-direction: column; gap: 12px; flex: 1 1 auto; min-height: 0; }
+    .tab-bar { display: flex; gap: 10px; flex-wrap: wrap; flex: 0 0 auto; }
+    .tab-button { border: 1px solid rgba(72,101,158,.62); background: linear-gradient(180deg, rgba(18,31,62,.88), rgba(12,22,42,.88)); color: var(--muted); padding: 10px 14px; border-radius: 12px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: color .18s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease; }
+    .tab-button:hover { color: #eaf4ff; border-color: rgba(124,199,255,.46); }
+    .tab-button.is-active { color: #ffffff; border-color: rgba(124,199,255,.68); background: linear-gradient(180deg, rgba(36,74,146,.48), rgba(15,33,68,.92)); box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 8px 20px rgba(0,0,0,.18); }
+    .tab-content { flex: 1 1 auto; min-height: 0; }
+    .panel { background: linear-gradient(180deg, rgba(19,31,60,.96), rgba(14,23,44,.94)); border: 1px solid rgba(58,89,146,.55); border-radius: 18px; padding: 14px; box-shadow: 0 18px 44px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.04); min-height: 0; overflow: hidden; display: flex; flex-direction: column; align-self: start; }
+    .panel h2 { margin: 0 0 10px; font-size: 18px; letter-spacing: -.01em; flex: 0 0 auto; }
+    .stats { display: flex; gap: 14px; flex-wrap: wrap; color: var(--muted); margin-bottom: 10px; font-size: 13px; flex: 0 0 auto; }
+    .embed { padding-left: 0; min-height: 0; overflow: auto; }
+    .tab-pane { display: none; height: 100%; }
+    .tab-pane.is-active { display: flex; }
+    .tab-pane .panel { width: 100%; height: 100%; min-height: 0; }
+    .tab-body { min-height: 0; overflow: auto; padding-right: 4px; }
+    .tab-body, .embed { transition: transform .18s ease, opacity .18s ease, filter .18s ease; transform-origin: top center; }
+    .tab-body.swap-stage-out, .embed.swap-stage-out { opacity: 0; transform: translateY(18px); filter: blur(1px); }
+    .tab-body.swap-stage-in, .embed.swap-stage-in { opacity: 0; transform: translateY(-16px); filter: blur(1px); }
+    .tab-body::-webkit-scrollbar, .embed::-webkit-scrollbar { width: 8px; }
+    .tab-body::-webkit-scrollbar-thumb, .embed::-webkit-scrollbar-thumb { background: rgba(132,161,214,.22); border-radius: 999px; }
+    .line { margin: 4px 0; line-height: 1.45; word-break: break-word; }
+    .empty { min-height: 10px; }
+    strong { color: #ffffff; text-shadow: 0 0 6px rgba(255,255,255,.35), 0 0 12px rgba(255,255,255,.12); }
+    code { background: rgba(255,255,255,.08); padding: 1px 5px; border-radius: 5px; }
+    a { color: #8bd3ff; text-decoration: none; display: inline-block; max-width: 100%; overflow-wrap: anywhere; padding: 2px 0; border-bottom: 1px solid rgba(139,211,255,.28); text-shadow: 0 1px 6px rgba(0,0,0,.35); transition: color .18s ease, border-color .18s ease, text-shadow .18s ease; }
+    a:hover { color: #c9ecff; border-bottom-color: rgba(201,236,255,.7); text-shadow: 0 0 10px rgba(124,199,255,.26); }
+    a:focus-visible { outline: 2px solid var(--accentLine); outline-offset: 3px; border-bottom-color: rgba(201,236,255,.7); border-radius: 3px; }
+    a.discord-jump { display: inline-flex; align-items: center; gap: 9px; margin-top: 10px; padding: 9px 12px; max-width: none; border: 1px solid rgba(255,255,255,.72); border-bottom-width: 1px; border-radius: 10px; background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(241,245,252,.95)); color: #151922; font-weight: 700; text-shadow: none; box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 8px 20px rgba(0,0,0,.18); }
+    a.discord-jump:hover { color: #0f131a; border-color: rgba(255,255,255,.95); border-bottom-color: rgba(255,255,255,.95); text-shadow: none; box-shadow: inset 0 1px 0 rgba(255,255,255,1), 0 10px 24px rgba(0,0,0,.22); }
+    a.discord-jump:focus-visible { border-radius: 10px; }
+    .discord-jump-icon { width: 18px; height: 18px; flex: 0 0 auto; display: block; object-fit: contain; }
+    .discord-jump-label { line-height: 1.1; }
+    .finding-action-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+    .finding-action-row a.discord-jump { margin-top: 0; }
+    button.pin-toggle { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 9px 12px; border: 1px solid rgba(124,199,255,.36); border-radius: 10px; background: linear-gradient(180deg, rgba(124,199,255,.16), rgba(124,199,255,.08)); color: var(--text); font: inherit; font-weight: 700; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 8px 20px rgba(0,0,0,.14); }
+    button.pin-toggle:hover { border-color: rgba(124,199,255,.56); background: linear-gradient(180deg, rgba(124,199,255,.22), rgba(124,199,255,.12)); }
+    button.pin-toggle:focus-visible { outline: 2px solid var(--accentLine); outline-offset: 2px; }
+    button.pin-toggle.is-pinned { border-color: rgba(255,225,140,.5); background: linear-gradient(180deg, rgba(255,225,140,.18), rgba(255,225,140,.1)); color: #fff5c7; }
+    button.pin-toggle:disabled { opacity: .65; cursor: wait; }
+    .find { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: start; width: min(100%, 1000px); border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px; }
+    .find:first-child { border-top: 0; padding-top: 0; margin-top: 0; }
+    .find-main { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
+    .aura-media-strip { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; justify-content: flex-start; width: min(100%, 432px); }
+    .small { color: var(--muted); font-size: 13px; margin-bottom: 8px; line-height: 1.5; }
+    .discord-card { --embed-accent: var(--embedEdge); position: relative; isolation: isolate; display: grid; align-content: start; gap: 8px; min-height: 152px; background-color: var(--embed); background-image:
+      linear-gradient(90deg, #1d2026 0%, #262a31 14%, #31343b 32%, #383b42 52%, #3a3d44 100%);
+      width: min(100%, 500px); border: 1px solid rgba(255,255,255,.06); border-radius: 4px; padding: 9px 12px 10px 14px; overflow: hidden; box-shadow: inset 0 1px 0 rgba(255,255,255,.03), 0 0 0 1px rgba(255,255,255,.015); }
+    .discord-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: linear-gradient(180deg, var(--embed-accent) 0%, #ffffff 45%, var(--embed-accent) 100%); background-size: 100% 220%; background-position: 0 var(--embed-shift, 0%); box-shadow: 0 0 10px color-mix(in srgb, var(--embed-accent) 65%, white 35%); }
+    .discord-card::after { content: ""; position: absolute; inset: 0; pointer-events: none; background:
+      linear-gradient(118deg, rgba(255,255,255,0) 18%, rgba(255,255,255,.035) 32%, rgba(195,250,255,.08) 40%, rgba(255,255,255,.11) 48%, rgba(255,220,245,.05) 57%, rgba(255,255,255,0) 68%),
+      radial-gradient(circle at 78% 22%, rgba(210,248,255,.055), transparent 28%),
+      radial-gradient(circle at 24% 78%, rgba(255,230,245,.04), transparent 26%);
+      mix-blend-mode: screen; opacity: .68; z-index: 0; }
+    .discord-card > * { position: relative; z-index: 1; }
+    .discord-author { color: #dcddde; font-size: 14px; margin: 0; display: flex; align-items: center; gap: 8px; font-weight: 600; text-shadow: 0 1px 0 rgba(255,255,255,.05), 0 2px 6px rgba(0,0,0,.55); }
+    .discord-author-icons { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; }
+    .discord-author-icon { width: 20px !important; height: 20px !important; min-width: 20px; max-width: 20px; min-height: 20px; max-height: 20px; border-radius: 50%; object-fit: cover; flex: 0 0 auto; display: inline-block; overflow: hidden; }
+    .discord-author-icon-embed { border-radius: 4px; }
+    .discord-title { color: #ffffff; font-weight: 700; margin: 0; text-shadow: 0 1px 0 rgba(255,255,255,.08), 0 2px 8px rgba(0,0,0,.6); }
+    .discord-description { color: #dcddde; margin: 0; min-height: 2.9em; text-shadow: 0 1px 0 rgba(255,255,255,.04), 0 2px 6px rgba(0,0,0,.5); }
+    .line-quote { display: grid; grid-template-columns: 4px 1fr; align-items: stretch; gap: 8px; color: #e8efff; }
+    .quote-bar { width: 4px; border-radius: 999px; background: rgba(79, 84, 92, .9); box-shadow: inset 0 1px 0 rgba(255,255,255,.08); }
+    .quote-content { min-width: 0; }
+    .discord-fields { display: grid; grid-template-columns: repeat(3, minmax(110px, max-content)); gap: 8px 18px; justify-content: start; margin-top: auto; }
+    .discord-field-name { color: #ffffff; font-size: 12px; font-weight: 700; text-transform: uppercase; margin-bottom: 3px; text-shadow: 0 1px 0 rgba(255,255,255,.07), 0 2px 6px rgba(0,0,0,.55); }
+    .discord-field-value { color: #dcddde; font-size: 14px; text-shadow: 0 1px 0 rgba(255,255,255,.04), 0 2px 6px rgba(0,0,0,.5); }
+    .discord-field-value .line + .line { display: none; }
+    .aura-preview { width: 210px; flex: 0 1 210px; border: 1px solid rgba(96,128,194,.42); border-radius: 14px; padding: 10px; background:
+      radial-gradient(circle at top right, rgba(124,199,255,.12), transparent 38%),
+      linear-gradient(180deg, rgba(17,28,55,.96), rgba(11,18,36,.92));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 12px 24px rgba(0,0,0,.22); }
+    .aura-preview-label { color: #e9f4ff; font-size: 12px; font-weight: 700; letter-spacing: .01em; margin-bottom: 3px; }
+    .aura-preview-kind { color: rgba(201,236,255,.72); font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+    .aura-preview-media-wrap { border-radius: 10px; overflow: hidden; border: 1px solid rgba(124,199,255,.18); background:
+      linear-gradient(135deg, rgba(255,255,255,.03), rgba(255,255,255,.01)),
+      rgba(6,10,18,.9); min-height: 168px; display: grid; place-items: center; }
+    .aura-preview-media { display: block; width: 100%; max-height: 240px; object-fit: contain; }
+    .aura-preview-video { background: #04070d; object-fit: cover; }
+    .aura-preview-empty .aura-preview-media-wrap { color: var(--muted); font-size: 12px; text-align: center; padding: 18px; }
+    .polarity-positive, .polarity-negative { display: inline-block; transition: color .12s linear, text-shadow .12s linear; }
+    .polarity-positive { color: #ffffff; text-shadow: 0 0 6px rgba(255,255,255,.18), 0 1px 1px rgba(0,0,0,.55); animation: polarity-positive-flash 1s steps(1, end) infinite; }
+    .polarity-negative { color: #080808; text-shadow: 0 0 0 rgba(0,0,0,0), 0 0 1px rgba(255,255,255,.85), 0 1px 1px rgba(255,255,255,.18); animation: polarity-negative-flash 1s steps(1, end) infinite; }
+    @keyframes polarity-positive-flash {
+      0%, 49.999% { color: #ffffff; text-shadow: 0 0 6px rgba(255,255,255,.18), 0 1px 1px rgba(0,0,0,.55); }
+      50%, 100% { color: #080808; text-shadow: 0 0 0 rgba(0,0,0,0), 0 0 1px rgba(255,255,255,.85), 0 1px 1px rgba(255,255,255,.18); }
+    }
+    @keyframes polarity-negative-flash {
+      0%, 49.999% { color: #080808; text-shadow: 0 0 0 rgba(0,0,0,0), 0 0 1px rgba(255,255,255,.85), 0 1px 1px rgba(255,255,255,.18); }
+      50%, 100% { color: #ffffff; text-shadow: 0 0 6px rgba(255,255,255,.18), 0 1px 1px rgba(0,0,0,.55); }
+    }
+    .blinding-light-phrase { color: #f4feff; }
+    .blinding-light-core { display: inline-block; font-weight: 800; background-image: linear-gradient(110deg, #d8ffff 0%, #ffffff 18%, #9afcff 34%, #55f0ff 52%, #f7ffff 68%, #8befff 84%, #d8ffff 100%); background-size: 220% 100%; color: transparent; -webkit-background-clip: text; background-clip: text; text-shadow: 0 0 8px rgba(111,246,255,.18), 0 0 18px rgba(79,226,255,.16), 0 1px 1px rgba(0,0,0,.45); animation: blinding-light-shimmer 1.35s linear infinite; }
+    @keyframes blinding-light-shimmer {
+      from { background-position: 0% 50%; filter: brightness(1); }
+      50% { filter: brightness(1.12); }
+      to { background-position: 220% 50%; filter: brightness(1); }
+    }
+    .pixelated-word { display: inline-flex; align-items: baseline; gap: .02em; font-family: "Consolas", "Courier New", monospace; font-weight: 900; letter-spacing: .015em; line-height: 1; vertical-align: baseline; }
+    .pixelated-char { display: inline-block; color: hsl(calc(var(--pixel-index) * 36), 100%, 56%); text-shadow:
+      1px 0 0 #000000,
+      -1px 0 0 #000000,
+      0 1px 0 #000000,
+      0 -1px 0 #000000,
+      1px 1px 0 #000000,
+      -1px 1px 0 #000000,
+      1px -1px 0 #000000,
+      -1px -1px 0 #000000,
+      0 0 6px rgba(255,255,255,.08);
+      image-rendering: pixelated;
+      animation: pixelated-rainbow 2.4s linear infinite, pixelated-flicker 1.8s steps(2, end) infinite;
+      animation-delay: calc(var(--pixel-index) * -0.12s);
+    }
+    @keyframes pixelated-rainbow {
+      0% { color: hsl(calc(var(--pixel-index) * 36), 100%, 56%); }
+      100% { color: hsl(calc(var(--pixel-index) * 36 + 360), 100%, 56%); }
+    }
+    @keyframes pixelated-flicker {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-.02em); }
+    }
+    @media (max-width: 920px) { .find { grid-template-columns: 1fr; width: 100%; } .aura-media-strip { width: 100%; } }
+    @media (max-width: 560px) { body { overflow: auto; } .wrap { height: auto; min-height: 100vh; } .tab-shell, .tab-content, .tab-pane { min-height: auto; } .tab-pane { height: auto; } .tab-pane.is-active { display: block; } .panel, .tab-body, .embed { overflow: visible; min-height: auto; height: auto; } .find { grid-template-columns: 1fr; width: 100%; } .discord-card { width: 100%; } .aura-media-strip { gap: 10px; } .aura-preview { width: 100%; flex-basis: 100%; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Aura Scanner</h1>
+    <div class="meta" id="meta">Connecting...</div>
+    <div class="tab-shell">
+      <div class="tab-bar" role="tablist" aria-label="Aura sections">
+        <button class="tab-button is-active" data-tab="current" role="tab" type="button" aria-selected="true">Top 1 Stats</button>
+        <button class="tab-button" data-tab="latest" role="tab" type="button" aria-selected="false">Recent Feed</button>
+        <button class="tab-button" data-tab="pinned" role="tab" type="button" aria-selected="false">Pinned</button>
+        <button class="tab-button" data-tab="best" role="tab" type="button" aria-selected="false">Lowest Luck</button>
+        <button class="tab-button" data-tab="rolls" role="tab" type="button" aria-selected="false">Least Rolls</button>
+        <button class="tab-button" data-tab="rare" role="tab" type="button" aria-selected="false">Most Rare</button>
+        <button class="tab-button" data-tab="potion" role="tab" type="button" aria-selected="false">Potion Finds</button>
+        <button class="tab-button" data-tab="crafted" role="tab" type="button" aria-selected="false">Crafted Finds</button>
+      </div>
+      <div class="tab-content">
+        <section class="tab-pane is-active" data-pane="current">
+          <div class="panel">
+            <h2>Top 1 Stats</h2>
+            <div class="stats">
+              <div id="scanCount"></div>
+              <div id="filters"></div>
+            </div>
+            <div class="embed tab-body" id="bestEmbed">No result yet.</div>
+          </div>
+        </section>
+        <section class="tab-pane" data-pane="latest">
+          <div class="panel">
+            <h2>Most Recent Finds (Session)</h2>
+            <div id="latestSessionFinds" class="tab-body">No recent finds yet.</div>
+          </div>
+        </section>
+        <section class="tab-pane" data-pane="pinned">
+          <div class="panel">
+            <h2>Pinned Stats</h2>
+            <div id="pinnedFinds" class="tab-body">No pinned stats yet.</div>
+          </div>
+        </section>
+        <section class="tab-pane" data-pane="best">
+          <div class="panel">
+            <h2>Top 3 Lowest Luck</h2>
+            <div id="topBest" class="tab-body">No low-luck finds yet.</div>
+          </div>
+        </section>
+        <section class="tab-pane" data-pane="rolls">
+          <div class="panel">
+            <h2>Top 3 Least Rolls</h2>
+            <div id="leastRollFinds" class="tab-body">No least-roll finds yet.</div>
+          </div>
+        </section>
+        <section class="tab-pane" data-pane="rare">
+          <div class="panel">
+            <h2>Top 3 Most Rare (Live Window)</h2>
+            <div id="recentFinds" class="tab-body">No matching finds yet.</div>
+          </div>
+        </section>
+        <section class="tab-pane" data-pane="potion">
+          <div class="panel">
+            <h2>Top 3 Potion Finds</h2>
+            <div id="potionFinds" class="tab-body">No potion finds yet.</div>
+          </div>
+        </section>
+        <section class="tab-pane" data-pane="crafted">
+          <div class="panel">
+            <h2>Top 3 Crafted Finds</h2>
+            <div id="craftedFinds" class="tab-body">No crafted finds yet.</div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+  <script>
+    const API_BASE_URL = "";
+    const DISCORD_ICON_URL = API_BASE_URL
+      ? API_BASE_URL + '/discord-black-icon-1.png'
+      : 'discord-black-icon-1.png';
+    function buildApiUrl(pathname) {
+      return API_BASE_URL ? API_BASE_URL + pathname : pathname;
+    }
+
+    const domCache = {
+      meta: null,
+      scanCount: null,
+      filters: null,
+      latestSessionFinds: null,
+      pinnedFinds: null,
+      topBest: null,
+      bestEmbed: null,
+      leastRollFinds: null,
+      recentFinds: null,
+      potionFinds: null,
+      craftedFinds: null,
+    };
+    const EMBED_GRADIENT_CYCLE_MS = 2800;
+    const relativeTimeFormatter = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+
+    function formatRelativeTimeFromUnix(unixSeconds) {
+      const targetMs = Number(unixSeconds) * 1000;
+      if (!Number.isFinite(targetMs)) {
+        return '';
+      }
+      const diffSeconds = Math.round((targetMs - Date.now()) / 1000);
+      const units = [
+        ['year', 31536000],
+        ['month', 2592000],
+        ['day', 86400],
+        ['hour', 3600],
+        ['minute', 60],
+        ['second', 1],
+      ];
+      for (const [unit, secondsPerUnit] of units) {
+        if (Math.abs(diffSeconds) >= secondsPerUnit || unit === 'second') {
+          return relativeTimeFormatter.format(Math.round(diffSeconds / secondsPerUnit), unit);
+        }
+      }
+      return '';
+    }
+
+    function refreshRelativeTimes() {
+      document.querySelectorAll('.live-relative-time').forEach((element) => {
+        const nextText = formatRelativeTimeFromUnix(element.dataset.unix);
+        if (element.textContent !== nextText) {
+          element.textContent = nextText;
+        }
+      });
+    }
+
+    function startEmbedGradientClock() {
+      const rootStyle = document.documentElement.style;
+      function tick(now) {
+        const progress = (now % EMBED_GRADIENT_CYCLE_MS) / EMBED_GRADIENT_CYCLE_MS;
+        rootStyle.setProperty('--embed-shift', (progress * 220).toFixed(3) + '%');
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    function setTextIfChanged(id, nextValue, cacheKey) {
+      if (domCache[cacheKey] === nextValue) {
+        return;
+      }
+      domCache[cacheKey] = nextValue;
+      document.getElementById(id).textContent = nextValue;
+    }
+
+    function setHtmlIfChanged(id, nextValue, cacheKey) {
+      if (domCache[cacheKey] === nextValue) {
+        return;
+      }
+      domCache[cacheKey] = nextValue;
+      const element = document.getElementById(id);
+      const nextToken = String((Number(element.dataset.swapToken || '0') + 1));
+      element.dataset.swapToken = nextToken;
+      element.classList.remove('swap-stage-in');
+      element.classList.add('swap-stage-out');
+      window.setTimeout(() => {
+        if (element.dataset.swapToken !== nextToken) {
+          return;
+        }
+        element.innerHTML = nextValue;
+        void hydratePersistentAuraMedia();
+        element.classList.remove('swap-stage-out');
+        element.classList.add('swap-stage-in');
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (element.dataset.swapToken !== nextToken) {
+              return;
+            }
+            element.classList.remove('swap-stage-in');
+          });
+        });
+      }, 140);
+    }
+
+    function escapeHtmlText(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function setActiveTab(tabKey) {
+      document.querySelectorAll('[data-tab]').forEach((button) => {
+        const isActive = button.dataset.tab === tabKey;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+      document.querySelectorAll('[data-pane]').forEach((pane) => {
+        pane.classList.toggle('is-active', pane.dataset.pane === tabKey);
+      });
+      scheduleAuraVideoPlaybackUpdate();
+    }
+
+    function renderDiscordJumpLink(url) {
+      if (!url) {
+        return '';
+      }
+      return '<a class="discord-jump" href="' + url + '" target="_blank" rel="noreferrer">' +
+        '<img class="discord-jump-icon" src="' + DISCORD_ICON_URL + '" alt="" width="18" height="18" />' +
+        '<span class="discord-jump-label">Open this stat in Discord</span>' +
+      '</a>';
+    }
+
+    function renderPinToggle(find) {
+      if (!find.findingKey) {
+        return '';
+      }
+
+      const safeKey = escapeHtmlText(find.findingKey);
+      const pinnedClass = find.isPinned ? ' is-pinned' : '';
+      return '<button class="pin-toggle' + pinnedClass + '" type="button" data-pin-key="' + safeKey + '" data-pinned="' + (find.isPinned ? '1' : '0') + '">' +
+        (find.isPinned ? 'Unpin stat' : 'Pin stat') +
+      '</button>';
+    }
+
+    function renderFindingActions(find) {
+      const jumpLink = renderDiscordJumpLink(find.messageUrl);
+      const pinToggle = renderPinToggle(find);
+      if (!jumpLink && !pinToggle) {
+        return '';
+      }
+
+      return '<div class="finding-action-row">' + jumpLink + pinToggle + '</div>';
+    }
+
+    function renderAuraMediaCard(auraName, kindLabel, mediaUrl, mediaType) {
+      const safeName = escapeHtmlText(auraName);
+      const safeKind = escapeHtmlText(kindLabel);
+      if (!mediaUrl) {
+        return '<aside class="aura-preview aura-preview-empty">' +
+          '<div class="aura-preview-label">' + safeName + '</div>' +
+          '<div class="aura-preview-kind">' + safeKind + '</div>' +
+          '<div class="aura-preview-media-wrap">No Fandom media found.</div>' +
+        '</aside>';
+      }
+
+      const safeUrl = escapeHtmlText(mediaUrl);
+      const safeAlt = safeName + ' ' + safeKind.toLowerCase();
+      const mediaHtml = mediaType === 'video'
+        ? '<video class="aura-preview-media aura-preview-video" data-media-src="' + safeUrl + '" muted loop playsinline preload="none" disablepictureinpicture></video>'
+        : '<img class="aura-preview-media" src="' + safeUrl + '" alt="' + safeAlt + '" loading="lazy" referrerpolicy="no-referrer" />';
+      return '<aside class="aura-preview">' +
+        '<div class="aura-preview-label">' + safeName + '</div>' +
+        '<div class="aura-preview-kind">' + safeKind + '</div>' +
+        '<div class="aura-preview-media-wrap">' +
+          mediaHtml +
+        '</div>' +
+      '</aside>';
+    }
+
+    function renderAuraPreview(find) {
+      if (!find.auraName) {
+        return '';
+      }
+
+      const cards = [];
+      if (find.auraPreviewUrl) {
+        cards.push(renderAuraMediaCard(find.auraName, 'Preview', find.auraPreviewUrl, find.auraPreviewMediaType));
+      }
+      if (find.auraCutsceneUrl) {
+        cards.push(renderAuraMediaCard(find.auraName, 'Opening', find.auraCutsceneUrl, find.auraCutsceneMediaType));
+      }
+      if (!cards.length) {
+        cards.push(renderAuraMediaCard(find.auraName, 'Preview', '', 'image'));
+      }
+
+      return '<div class="aura-media-strip">' + cards.join('') + '</div>';
+    }
+
+    function renderFindingBlock(find, prefixText = '') {
+      return '<div class="find">' +
+        '<div class="find-main">' +
+          (prefixText ? '<div class="small">' + prefixText + '</div>' : '') +
+          find.embedHtml +
+          renderFindingActions(find) +
+        '</div>' +
+        renderAuraPreview(find) +
+      '</div>';
+    }
+
+    let stateEventSource = null;
+    let stateStreamConnected = false;
+    const AURA_MEDIA_CACHE_NAME = 'aura-media-cache-v1';
+    let auraMediaCachePromise = null;
+    const auraMediaBlobUrls = new Map();
+    const auraMediaPersistPromises = new Map();
+    const auraMediaCacheMisses = new Set();
+    let auraMediaHydrationPromise = null;
+    let auraVideoPlaybackFrame = 0;
+
+    function supportsPersistentAuraMedia() {
+      return typeof caches !== 'undefined' &&
+        typeof URL !== 'undefined' &&
+        typeof URL.createObjectURL === 'function';
+    }
+
+    function openAuraMediaCache() {
+      if (!supportsPersistentAuraMedia()) {
+        return Promise.resolve(null);
+      }
+      if (!auraMediaCachePromise) {
+        auraMediaCachePromise = caches.open(AURA_MEDIA_CACHE_NAME).catch(() => null);
+      }
+      return auraMediaCachePromise;
+    }
+
+    async function resolveCachedAuraMediaUrl(sourceUrl) {
+      if (!sourceUrl || !supportsPersistentAuraMedia()) {
+        return '';
+      }
+      if (auraMediaBlobUrls.has(sourceUrl)) {
+        return auraMediaBlobUrls.get(sourceUrl);
+      }
+      if (auraMediaCacheMisses.has(sourceUrl)) {
+        return '';
+      }
+
+      const cache = await openAuraMediaCache();
+      if (!cache) {
+        return '';
+      }
+
+      try {
+        const response = await cache.match(sourceUrl);
+        if (!response || !response.ok) {
+          auraMediaCacheMisses.add(sourceUrl);
+          return '';
+        }
+        const blobUrl = URL.createObjectURL(await response.blob());
+        auraMediaBlobUrls.set(sourceUrl, blobUrl);
+        auraMediaCacheMisses.delete(sourceUrl);
+        return blobUrl;
+      } catch {
+        return '';
+      }
+    }
+
+    function persistAuraMediaUrl(sourceUrl) {
+      if (!sourceUrl || !supportsPersistentAuraMedia()) {
+        return Promise.resolve('');
+      }
+      if (auraMediaPersistPromises.has(sourceUrl)) {
+        return auraMediaPersistPromises.get(sourceUrl);
+      }
+
+      const persistPromise = (async () => {
+        const cache = await openAuraMediaCache();
+        if (!cache) {
+          return '';
+        }
+
+        try {
+          const existing = await cache.match(sourceUrl);
+          if (!existing) {
+            const response = await fetch(sourceUrl, {
+              cache: 'force-cache',
+              credentials: 'omit',
+              mode: 'cors',
+            });
+            if (!response.ok) {
+              return '';
+            }
+            await cache.put(sourceUrl, response.clone());
+          }
+          auraMediaCacheMisses.delete(sourceUrl);
+        } catch {
+          return '';
+        }
+
+        return resolveCachedAuraMediaUrl(sourceUrl);
+      })();
+
+      auraMediaPersistPromises.set(sourceUrl, persistPromise);
+      persistPromise.finally(() => {
+        auraMediaPersistPromises.delete(sourceUrl);
+      });
+      return persistPromise;
+    }
+
+    function setAuraVideoSource(video, nextUrl) {
+      if (!video || !nextUrl) {
+        return;
+      }
+
+      if (video.dataset.activeMediaSrc !== nextUrl) {
+        video.dataset.activeMediaSrc = nextUrl;
+        video.src = nextUrl;
+        video.load();
+      }
+      const playAttempt = video.play();
+      if (playAttempt && typeof playAttempt.catch === 'function') {
+        playAttempt.catch(() => {});
+      }
+    }
+
+    function isAuraVideoInActivePane(video) {
+      const pane = video.closest('.tab-pane');
+      return !pane || pane.classList.contains('is-active');
+    }
+
+    function isAuraVideoInViewport(video) {
+      if (!video.isConnected) {
+        return false;
+      }
+      const rect = video.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) {
+        return false;
+      }
+      const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+      return rect.bottom >= -80 && rect.top <= viewportHeight + 80;
+    }
+
+    function shouldAuraVideoPlay(video) {
+      if (document.hidden) {
+        return false;
+      }
+      return isAuraVideoInActivePane(video) && isAuraVideoInViewport(video);
+    }
+
+    function updateAuraVideoPlayback() {
+      auraVideoPlaybackFrame = 0;
+      const videos = document.querySelectorAll('video[data-media-src]');
+      videos.forEach((video) => {
+        if (!shouldAuraVideoPlay(video)) {
+          if (!video.paused) {
+            video.pause();
+          }
+          return;
+        }
+
+        const resolvedUrl = video.dataset.resolvedMediaSrc || video.dataset.mediaSrc || '';
+        if (!resolvedUrl) {
+          return;
+        }
+        setAuraVideoSource(video, resolvedUrl);
+      });
+    }
+
+    function scheduleAuraVideoPlaybackUpdate() {
+      if (auraVideoPlaybackFrame) {
+        return;
+      }
+      auraVideoPlaybackFrame = requestAnimationFrame(updateAuraVideoPlayback);
+    }
+
+    async function hydratePersistentAuraMedia() {
+      if (auraMediaHydrationPromise) {
+        return auraMediaHydrationPromise;
+      }
+      auraMediaHydrationPromise = (async () => {
+      const videos = Array.from(document.querySelectorAll('video[data-media-src]'));
+      if (!videos.length) {
+        return;
+      }
+
+      await Promise.all(videos.map(async (video) => {
+        const sourceUrl = video.dataset.mediaSrc || '';
+        if (!sourceUrl) {
+          return;
+        }
+
+        if (!video.dataset.resolvedMediaSrc) {
+          const cachedUrl = await resolveCachedAuraMediaUrl(sourceUrl);
+          video.dataset.resolvedMediaSrc = cachedUrl || sourceUrl;
+        }
+
+        if (video.dataset.persistOnPlayBound === 'true') {
+          return;
+        }
+
+        video.dataset.persistOnPlayBound = 'true';
+        video.addEventListener('playing', () => {
+          void persistAuraMediaUrl(sourceUrl);
+        }, { once: true });
+      }));
+      scheduleAuraVideoPlaybackUpdate();
+      })();
+      try {
+        await auraMediaHydrationPromise;
+      } finally {
+        auraMediaHydrationPromise = null;
+      }
+    }
+
+    function applyState(state) {
+      setTextIfChanged('meta', state.statusText, 'meta');
+      setTextIfChanged('scanCount', 'Scanned: ' + state.scannedCount.toLocaleString('en-US'), 'scanCount');
+      setTextIfChanged('filters', state.filterText, 'filters');
+      const latest = state.latestSessionFinds.length
+        ? state.latestSessionFinds.map((find, index) =>
+            renderFindingBlock(
+              find,
+              '#' + (index + 1) + ' | Most recent first'
+            )
+          ).join('')
+        : 'No recent finds yet.';
+      setHtmlIfChanged('latestSessionFinds', latest, 'latestSessionFinds');
+      const pinned = state.pinnedFinds.length
+        ? state.pinnedFinds.map((find, index) =>
+            renderFindingBlock(
+              find,
+              '#' + (index + 1) + ' | Pinned'
+            )
+          ).join('')
+        : 'No pinned stats yet.';
+      setHtmlIfChanged('pinnedFinds', pinned, 'pinnedFinds');
+      const topBest = state.topBestFindings.length
+        ? state.topBestFindings.map((find, index) =>
+            renderFindingBlock(
+              find,
+              '#' + (index + 1) + ' | Luck: ' + find.luckText + ' | Rarity: 1 in ' + find.rarity.toLocaleString('en-US') + ' | Rolls: ' + find.rolls.toLocaleString('en-US') + (find.embedColor ? ' | Color: ' + find.embedColor : '')
+            )
+          ).join('')
+        : 'No low-luck finds yet.';
+      setHtmlIfChanged('topBest', topBest, 'topBest');
+      const leastRolls = state.leastRollFinds.length
+        ? state.leastRollFinds.map((find, index) =>
+            renderFindingBlock(
+              find,
+              '#' + (index + 1) + ' | Rolls: ' + find.rolls.toLocaleString('en-US') + ' | Rarity: 1 in ' + find.rarity.toLocaleString('en-US') + ' | Luck: ' + find.luckText + (find.embedColor ? ' | Color: ' + find.embedColor : '')
+            )
+          ).join('')
+        : 'No least-roll finds yet.';
+      setHtmlIfChanged('leastRollFinds', leastRolls, 'leastRollFinds');
+      const currentStatWinners = [];
+      const lowestLuckWinner = state.topBestFindings[0] || null;
+      const leastRollsWinner = state.leastRollFinds[0] || null;
+      const mostRareWinner = state.recentFinds[0] || null;
+      if (lowestLuckWinner) {
+        currentStatWinners.push(
+          renderFindingBlock(
+            lowestLuckWinner,
+            'Top 1 Lowest Luck | Luck: ' + lowestLuckWinner.luckText + ' | Rarity: 1 in ' + lowestLuckWinner.rarity.toLocaleString('en-US') + ' | Rolls: ' + lowestLuckWinner.rolls.toLocaleString('en-US') + (lowestLuckWinner.embedColor ? ' | Color: ' + lowestLuckWinner.embedColor : '')
+          )
+        );
+      }
+      if (leastRollsWinner) {
+        currentStatWinners.push(
+          renderFindingBlock(
+            leastRollsWinner,
+            'Top 1 Least Rolls | Rolls: ' + leastRollsWinner.rolls.toLocaleString('en-US') + ' | Rarity: 1 in ' + leastRollsWinner.rarity.toLocaleString('en-US') + ' | Luck: ' + leastRollsWinner.luckText + (leastRollsWinner.embedColor ? ' | Color: ' + leastRollsWinner.embedColor : '')
+          )
+        );
+      }
+      if (mostRareWinner) {
+        currentStatWinners.push(
+          renderFindingBlock(
+            mostRareWinner,
+            'Top 1 Most Rare | Rarity: 1 in ' + mostRareWinner.rarity.toLocaleString('en-US') + ' | Rolls: ' + mostRareWinner.rolls.toLocaleString('en-US') + ' | Luck: ' + mostRareWinner.luckText + (mostRareWinner.embedColor ? ' | Color: ' + mostRareWinner.embedColor : '')
+          )
+        );
+      }
+      const bestEmbed = currentStatWinners.length
+        ? currentStatWinners.join('')
+        : 'No top-1 finds yet.';
+      setHtmlIfChanged('bestEmbed', bestEmbed, 'bestEmbed');
+      const recent = state.recentFinds.length
+        ? state.recentFinds.map((find) =>
+            renderFindingBlock(
+              find,
+              'Score: ' + find.score + ' | Rarity: 1 in ' + find.rarity.toLocaleString('en-US') + ' | Rolls: ' + find.rolls.toLocaleString('en-US') + ' | Luck: ' + find.luckText + (find.embedColor ? ' | Color: ' + find.embedColor : '')
+            )
+          ).join('')
+        : 'No matching finds yet.';
+      setHtmlIfChanged('recentFinds', recent, 'recentFinds');
+      const potion = state.potionFinds.length
+        ? state.potionFinds.map((find) =>
+            renderFindingBlock(
+              find,
+              'Score: ' + find.score + ' | Rarity: 1 in ' + find.rarity.toLocaleString('en-US') + ' | Rolls: ' + find.rolls.toLocaleString('en-US') + ' | Luck: ' + find.luckText + (find.embedColor ? ' | Color: ' + find.embedColor : '')
+            )
+          ).join('')
+        : 'No potion finds yet.';
+      setHtmlIfChanged('potionFinds', potion, 'potionFinds');
+      const crafted = state.craftedFinds.length
+        ? state.craftedFinds.map((find) =>
+            renderFindingBlock(
+              find,
+              'Score: ' + find.score + ' | Rarity: 1 in ' + find.rarity.toLocaleString('en-US') + ' | Rolls: ' + find.rolls.toLocaleString('en-US') + ' | Luck: ' + find.luckText + (find.embedColor ? ' | Color: ' + find.embedColor : '')
+            )
+          ).join('')
+        : 'No crafted finds yet.';
+      setHtmlIfChanged('craftedFinds', crafted, 'craftedFinds');
+      refreshRelativeTimes();
+      void hydratePersistentAuraMedia();
+    }
+
+    async function refresh() {
+      const response = await fetch(buildApiUrl('/state'), { cache: 'no-store' });
+      applyState(await response.json());
+    }
+
+    async function togglePinnedFinding(findingKey, shouldPin) {
+      const response = await fetch(buildApiUrl('/pin'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ findingKey, pinned: shouldPin }),
+      });
+      if (!response.ok) {
+        throw new Error('Pin update failed');
+      }
+    }
+
+    function connectStateStream() {
+      if (stateEventSource) {
+        stateEventSource.close();
+      }
+
+      const eventSource = new EventSource(buildApiUrl('/events'));
+      stateEventSource = eventSource;
+      eventSource.addEventListener('open', () => {
+        stateStreamConnected = true;
+      });
+      eventSource.addEventListener('state', (event) => {
+        try {
+          stateStreamConnected = true;
+          applyState(JSON.parse(event.data));
+        } catch {}
+      });
+      eventSource.addEventListener('error', () => {
+        stateStreamConnected = false;
+        eventSource.close();
+        if (stateEventSource === eventSource) {
+          stateEventSource = null;
+          setTimeout(connectStateStream, 1000);
+        }
+      });
+    }
+
+    document.querySelectorAll('[data-tab]').forEach((button) => {
+      button.addEventListener('click', () => setActiveTab(button.dataset.tab));
+    });
+    document.addEventListener('click', (event) => {
+      const button = event.target.closest('button.pin-toggle[data-pin-key]');
+      if (!button) {
+        return;
+      }
+
+      const findingKey = button.dataset.pinKey || '';
+      if (!findingKey) {
+        return;
+      }
+
+      const shouldPin = button.dataset.pinned !== '1';
+      button.disabled = true;
+      togglePinnedFinding(findingKey, shouldPin)
+        .catch(() => refresh().catch(() => {}))
+        .finally(() => {
+          button.disabled = false;
+        });
+    });
+    startEmbedGradientClock();
+    refresh().catch(() => {});
+    connectStateStream();
+    window.addEventListener('scroll', scheduleAuraVideoPlaybackUpdate, { passive: true });
+    window.addEventListener('resize', scheduleAuraVideoPlaybackUpdate);
+    document.addEventListener('visibilitychange', scheduleAuraVideoPlaybackUpdate);
+    setInterval(() => {
+      if (stateStreamConnected) {
+        return;
+      }
+      refresh().catch(() => {});
+    }, 15000);
+    setInterval(refreshRelativeTimes, 1000);
+  </script>
+</body>
+</html>
