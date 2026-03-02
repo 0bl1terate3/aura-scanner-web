@@ -1649,13 +1649,13 @@ function renderDashboardHtml(apiBaseUrl = "") {
       if (!trimmed || trimmed === '/') {
         return '';
       }
-      return trimmed.replace(/\/+$/, '');
+      return trimmed.replace(/\\/+$/, '');
     }
     function resolveRuntimeApiBaseUrl() {
       const queryValue = new URLSearchParams(window.location.search).get('api');
       if (queryValue) {
         const normalized = normalizeClientApiBaseUrl(queryValue);
-        if (/^https?:\/\//i.test(normalized)) {
+        if (/^https?:\\/\\//i.test(normalized)) {
           try {
             localStorage.setItem('aura_api_base_url', normalized);
           } catch {}
@@ -1664,7 +1664,7 @@ function renderDashboardHtml(apiBaseUrl = "") {
       }
       try {
         const stored = normalizeClientApiBaseUrl(localStorage.getItem('aura_api_base_url') || '');
-        if (stored && /^https?:\/\//i.test(stored)) {
+        if (stored && /^https?:\\/\\//i.test(stored)) {
           return stored;
         }
       } catch {}
